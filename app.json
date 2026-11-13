@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Gastos",
+    "slug": "gastos",
+    "scheme": "gastos",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": { "supportsTablet": true },
+    "android": {
+      "package": "com.jhonatascardosodev.gastos",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F766E",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": { "favicon": "./assets/favicon.png" },
+    "plugins": ["expo-router", "expo-sqlite", "expo-font", "expo-status-bar"]
+  }
+}
