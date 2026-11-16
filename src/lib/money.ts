@@ -54,3 +54,13 @@ export function parseDateInput(text: string, base: Date): string | null {
   if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
   return d.toISOString();
 }
+
+/** Currency mask: only digits are kept and read as cents. "1234" -> "12,34", "123456" -> "1.234,56". Empty stays empty. */
+export function maskMoneyInput(text: string): string {
+  const digits = text.replace(/\D/g, '').replace(/^0+/, '').slice(0, 11);
+  if (!digits) return '';
+  const padded = digits.padStart(3, '0');
+  const cents = padded.slice(-2);
+  const int = padded.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${int},${cents}`;
+}

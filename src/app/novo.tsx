@@ -4,7 +4,7 @@ import { useState, type ComponentProps } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { makeStyles, useColors } from '@/components/theme';
-import { formatDateInput, maskDateInput, parseDateInput, parseMoney } from '@/lib/money';
+import { formatDateInput, maskDateInput, maskMoneyInput, parseDateInput, parseMoney } from '@/lib/money';
 import { useApp } from '@/state/AppContext';
 import { categoriesFor, type Kind } from '@/state/types';
 
@@ -15,7 +15,7 @@ export default function Novo() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editing = id ? entries.find((e) => e.id === id) : undefined;
   const [kind, setKind] = useState<Kind>(editing?.kind ?? 'expense');
-  const [amountText, setAmountText] = useState(editing ? (editing.amount / 100).toFixed(2).replace('.', ',') : '');
+  const [amountText, setAmountText] = useState(editing ? maskMoneyInput(String(editing.amount)) : '');
   const [category, setCategory] = useState(editing?.category ?? 'comida');
   const [note, setNote] = useState(editing?.note ?? '');
   const [dateText, setDateText] = useState(formatDateInput(editing?.date ?? new Date().toISOString()));
@@ -70,12 +70,13 @@ export default function Novo() {
       <TextInput
         value={amountText}
         onChangeText={(t) => {
-          setAmountText(t);
+          setAmountText(maskMoneyInput(t));
           setError('');
         }}
         placeholder="0,00"
         placeholderTextColor={colors.muted}
-        keyboardType="decimal-pad"
+        keyboardType="number-pad"
+        inputMode="numeric"
         style={[styles.input, styles.amount]}
         autoFocus={!editing}
       />
