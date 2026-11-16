@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { formatDay, formatMoney } from '@/lib/money';
 import { useApp } from '@/state/AppContext';
@@ -14,11 +14,19 @@ export function EntryRow({ entry }: { entry: Entry }) {
   const cat = categoryOf(entry.category);
   const income = entry.kind === 'income';
 
-  const confirmRemove = () =>
-    Alert.alert('Excluir lançamento?', `${cat.label} · ${formatMoney(entry.amount)}`, [
+  const confirmRemove = () => {
+    const title = 'Excluir lançamento?';
+    const message = `${cat.label} · ${formatMoney(entry.amount)}`;
+    // Alert.alert com botões não funciona no react-native-web.
+    if (Platform.OS === 'web') {
+      if (window.confirm(`${title}\n${message}`)) removeEntry(entry.id);
+      return;
+    }
+    Alert.alert(title, message, [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Excluir', style: 'destructive', onPress: () => removeEntry(entry.id) },
     ]);
+  };
 
   return (
     <Pressable onLongPress={confirmRemove} style={styles.row} accessibilityHint="Segure para excluir">
@@ -34,6 +42,9 @@ export function EntryRow({ entry }: { entry: Entry }) {
       <Text style={[styles.amount, { color: income ? colors.income : colors.expense }]}>
         {income ? '+' : '-'} {formatMoney(entry.amount)}
       </Text>
+      <Pressable onPress={confirmRemove} hitSlop={10} accessibilityRole="button" accessibilityLabel="Excluir lançamento">
+        <Ionicons name="trash-outline" size={20} color={colors.muted} />
+      </Pressable>
     </Pressable>
   );
 }
