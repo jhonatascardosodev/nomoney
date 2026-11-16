@@ -54,17 +54,22 @@ export default function Resumo() {
       {byCategory.length === 0 ? (
         <Text style={styles.empty}>Nenhum gasto neste mês. Toque no + para adicionar.</Text>
       ) : (
-        byCategory.map(([id, total]) => (
-          <View key={id} style={styles.cat}>
-            <View style={styles.catHead}>
-              <Text style={styles.catName}>{categoryOf(id).label}</Text>
-              <Text style={styles.catValue}>{formatMoney(total)}</Text>
+        byCategory.map(([id, total]) => {
+          const pct = expense > 0 ? (total / expense) * 100 : 0;
+          return (
+            <View key={id} style={styles.cat}>
+              <View style={styles.catHead}>
+                <Text style={styles.catName}>{categoryOf(id).label}</Text>
+                <Text style={styles.catValue}>
+                  {formatMoney(total)} · {pct.toFixed(pct > 0 && pct < 10 ? 1 : 0).replace('.', ',')}%
+                </Text>
+              </View>
+              <View style={styles.track}>
+                <View style={[styles.fill, { width: `${pct}%` }]} />
+              </View>
             </View>
-            <View style={styles.track}>
-              <View style={[styles.fill, { width: `${Math.max(4, (total / expense) * 100)}%` }]} />
-            </View>
-          </View>
-        ))
+          );
+        })
       )}
     </ScrollView>
   );
