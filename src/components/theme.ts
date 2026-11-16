@@ -1,7 +1,7 @@
 import { createContext, createElement, useContext, useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 
-import { authStorage } from '@/lib/storage';
+import { kvStorage } from '@/lib/storage';
 
 const light = {
   background: '#F3F8F7',
@@ -54,7 +54,7 @@ const ThemeContext = createContext<ThemeState>({
 
 function readPreference(): ThemePreference {
   try {
-    const saved = authStorage.getItem(STORAGE_KEY);
+    const saved = kvStorage.getItem(STORAGE_KEY);
     return saved === 'light' || saved === 'dark' ? saved : 'system';
   } catch {
     return 'system';
@@ -75,7 +75,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setPreference: (next) => {
         setPreferenceState(next);
         try {
-          authStorage.setItem(STORAGE_KEY, next);
+          kvStorage.setItem(STORAGE_KEY, next);
         } catch {
           // Not saved; the choice still applies until the app closes.
         }

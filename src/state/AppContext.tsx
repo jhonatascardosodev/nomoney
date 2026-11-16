@@ -1,9 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { authStorage } from '@/lib/storage';
+import { deleteEntry, insertEntry, loadEntries, updateEntry as persistUpdate } from '@/lib/entriesRepo';
 import type { Entry } from './types';
-
-const STORAGE_KEY = 'gastos.entries';
 
 type AppState = {
   entries: Entry[];
@@ -19,49 +17,66 @@ const AppContext = createContext<AppState>({
   removeEntry: () => {},
 });
 
-function load(): Entry[] {
-  try {
-    const raw = authStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Entry[]) : [];
-  } catch {
-    return [];
-  }
-}
+const byDateDesc = (a: Entry, b: Entry) => b.date.localeCompare(a.date);
 
-function save(entries: Entry[]) {
-  try {
-    authStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  } catch {
-    // Not saved; entries still live until the app closes.
-  }
-}
+const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [entries, setEntries] = useState<Entry[]>(load);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [ready, setReady] = useState(false);
 
-  const update = useCallback((fn: (current: Entry[]) => Entry[]) => {
-    setEntries((current) => {
-      const next = fn(current);
-      save(next);
-      return next;
-    });
+  useEffect(() => {
+    let cancelled = false;
+    loadEntries()
+      .then((loaded) => {
+        if (!cancelled) setEntries(loaded);
+      })
+      .catch((err) => console.warn('Falha ao carregar lançamentos', err))
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const value = useMemo<AppState>(
-    () => ({
-      entries,
-      addEntry: (entry) =>
-        update((cur) =>
-          [{ ...entry, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }, ...cur].sort((a, b) =>
-            b.date.localeCompare(a.date),
-          ),
-        ),
-      updateEntry: (id, entry) =>
-        update((cur) => cur.map((e) => (e.id === id ? { ...entry, id } : e)).sort((a, b) => b.date.localeCompare(a.date))),
-      removeEntry: (id) => update((cur) => cur.filter((e) => e.id !== id)),
-    }),
-    [entries, update],
+  const persist = useCallback((task: Promise<void>) => {
+    task.catch((err) => console.warn('Falha ao salvar lançamento', err));
+  }, []);
+
+  const addEntry = useCallback<AppState['addEntry']>(
+    (entry) => {
+      const full: Entry = { ...entry, id: newId() };
+      setEntries((cur) => [full, ...cur].sort(byDateDesc));
+      persist(insertEntry(full));
+    },
+    [persist],
   );
+
+  const updateEntry = useCallback<AppState['updateEntry']>(
+    (id, entry) => {
+      const full: Entry = { ...entry, id };
+      setEntries((cur) => cur.map((e) => (e.id === id ? full : e)).sort(byDateDesc));
+      persist(persistUpdate(full));
+    },
+    [persist],
+  );
+
+  const removeEntry = useCallback<AppState['removeEntry']>(
+    (id) => {
+      setEntries((cur) => cur.filter((e) => e.id !== id));
+      persist(deleteEntry(id));
+    },
+    [persist],
+  );
+
+  const value = useMemo<AppState>(
+    () => ({ entries, addEntry, updateEntry, removeEntry }),
+    [entries, addEntry, updateEntry, removeEntry],
+  );
+
+  // Wait for the first load so screens never flash an empty list.
+  if (!ready) return null;
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

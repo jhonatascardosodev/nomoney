@@ -1,7 +1,7 @@
 const memory = new Map<string, string>();
 
-/** Session storage for Supabase on web; falls back to memory when there is no window (e.g. static rendering). */
-export const authStorage =
+/** Small key-value storage on web; falls back to memory when there is no window (e.g. static rendering). */
+export const kvStorage =
   typeof window !== 'undefined' && window.localStorage
     ? window.localStorage
     : {
