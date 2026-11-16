@@ -6,7 +6,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { makeStyles, useColors } from '@/components/theme';
 import { formatDateInput, maskDateInput, parseDateInput, parseMoney } from '@/lib/money';
 import { useApp } from '@/state/AppContext';
-import { CATEGORIES, type Kind } from '@/state/types';
+import { categoriesFor, type Kind } from '@/state/types';
 
 export default function Novo() {
   const colors = useColors();
@@ -21,7 +21,13 @@ export default function Novo() {
   const [dateText, setDateText] = useState(formatDateInput(editing?.date ?? new Date().toISOString()));
   const [error, setError] = useState('');
 
-  const setDaysAgo = (days: number) => {
+  const changeKind = (next: Kind) => {
+    setKind(next);
+    // Keep the chosen category only if it also exists for the new kind.
+    if (!categoriesFor(next).some((c) => c.id === category)) setCategory(categoriesFor(next)[0].id);
+  };
+
+  const setDaysAgo =(days: number) => {
     const d = new Date();
     d.setDate(d.getDate() - days);
     setDateText(formatDateInput(d.toISOString()));
@@ -39,7 +45,9 @@ export default function Novo() {
       setError('Data inválida. Use o formato dd/mm/aaaa.');
       return;
     }
-    const data = { kind, amount, category, note: note.trim(), date };
+    // Old entries may carry a category that no longer fits their kind (e.g. an expense filed under "Salário").
+    const validCategory = categoriesFor(kind).some((c) => c.id === category) ? category : 'outros';
+    const data = { kind, amount, category: validCategory, note: note.trim(), date };
     if (editing) updateEntry(editing.id, data);
     else addEntry(data);
     router.back();
@@ -50,7 +58,7 @@ export default function Novo() {
       <Stack.Screen options={{ title: editing ? 'Editar lançamento' : 'Novo lançamento' }} />
       <View style={styles.row}>
         {(['expense', 'income'] as const).map((k) => (
-          <Pressable key={k} onPress={() => setKind(k)} style={[styles.seg, kind === k && styles.segOn]}>
+          <Pressable key={k} onPress={() => changeKind(k)} style={[styles.seg, kind === k && styles.segOn]}>
             <Text style={[styles.segText, kind === k && styles.segTextOn]}>
               {k === 'expense' ? 'Gasto' : 'Entrada'}
             </Text>
@@ -74,7 +82,7 @@ export default function Novo() {
 
       <Text style={styles.label}>Categoria</Text>
       <View style={styles.grid}>
-        {CATEGORIES.map((c) => (
+        {categoriesFor(kind).map((c) => (
           <Pressable
             key={c.id}
             onPress={() => setCategory(c.id)}
