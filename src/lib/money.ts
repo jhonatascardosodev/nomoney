@@ -30,3 +30,27 @@ export function shiftMonth(key: string, delta: number): string {
 export function formatDay(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
+
+/** ISO date-time -> "dd/mm/aaaa" (local time). */
+export function formatDateInput(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
+/** Keeps only digits and inserts the slashes while typing: "1611" -> "16/11". */
+export function maskDateInput(text: string): string {
+  const d = text.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+}
+
+/** "dd/mm/aaaa" -> ISO date-time keeping the time of day of `base`. Null when not a real date. */
+export function parseDateInput(text: string, base: Date): string | null {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text);
+  if (!m) return null;
+  const [day, month, year] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const d = new Date(year, month - 1, day, base.getHours(), base.getMinutes(), base.getSeconds());
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+  return d.toISOString();
+}

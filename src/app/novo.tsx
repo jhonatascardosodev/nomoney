@@ -4,7 +4,7 @@ import { useState, type ComponentProps } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { makeStyles, useColors } from '@/components/theme';
-import { parseMoney } from '@/lib/money';
+import { formatDateInput, maskDateInput, parseDateInput, parseMoney } from '@/lib/money';
 import { useApp } from '@/state/AppContext';
 import { CATEGORIES, type Kind } from '@/state/types';
 
@@ -18,7 +18,15 @@ export default function Novo() {
   const [amountText, setAmountText] = useState(editing ? (editing.amount / 100).toFixed(2).replace('.', ',') : '');
   const [category, setCategory] = useState(editing?.category ?? 'comida');
   const [note, setNote] = useState(editing?.note ?? '');
+  const [dateText, setDateText] = useState(formatDateInput(editing?.date ?? new Date().toISOString()));
   const [error, setError] = useState('');
+
+  const setDaysAgo = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    setDateText(formatDateInput(d.toISOString()));
+    setError('');
+  };
 
   const save = () => {
     const amount = parseMoney(amountText);
@@ -26,7 +34,12 @@ export default function Novo() {
       setError('Informe um valor maior que zero.');
       return;
     }
-    const data = { kind, amount, category, note: note.trim(), date: editing?.date ?? new Date().toISOString() };
+    const date = parseDateInput(dateText, editing ? new Date(editing.date) : new Date());
+    if (!date) {
+      setError('Data inválida. Use o formato dd/mm/aaaa.');
+      return;
+    }
+    const data = { kind, amount, category, note: note.trim(), date };
     if (editing) updateEntry(editing.id, data);
     else addEntry(data);
     router.back();
@@ -76,6 +89,28 @@ export default function Novo() {
         ))}
       </View>
 
+      <Text style={styles.label}>Data</Text>
+      <View style={styles.grid}>
+        <TextInput
+          value={dateText}
+          onChangeText={(t) => {
+            setDateText(maskDateInput(t));
+            setError('');
+          }}
+          placeholder="dd/mm/aaaa"
+          placeholderTextColor={colors.muted}
+          keyboardType="number-pad"
+          maxLength={10}
+          style={[styles.input, styles.dateInput]}
+        />
+        <Pressable onPress={() => setDaysAgo(0)} style={styles.chip}>
+          <Text style={styles.chipText}>Hoje</Text>
+        </Pressable>
+        <Pressable onPress={() => setDaysAgo(1)} style={styles.chip}>
+          <Text style={styles.chipText}>Ontem</Text>
+        </Pressable>
+      </View>
+
       <Text style={styles.label}>Descrição (opcional)</Text>
       <TextInput
         value={note}
@@ -122,6 +157,7 @@ const useStyles = makeStyles((colors) => ({
     color: colors.text,
   },
   amount: { fontSize: 28, fontWeight: '800' },
+  dateInput: { minWidth: 140 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',
