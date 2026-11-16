@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -11,11 +11,13 @@ import { CATEGORIES, type Kind } from '@/state/types';
 export default function Novo() {
   const colors = useColors();
   const styles = useStyles();
-  const { addEntry } = useApp();
-  const [kind, setKind] = useState<Kind>('expense');
-  const [amountText, setAmountText] = useState('');
-  const [category, setCategory] = useState('comida');
-  const [note, setNote] = useState('');
+  const { entries, addEntry, updateEntry } = useApp();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const editing = id ? entries.find((e) => e.id === id) : undefined;
+  const [kind, setKind] = useState<Kind>(editing?.kind ?? 'expense');
+  const [amountText, setAmountText] = useState(editing ? (editing.amount / 100).toFixed(2).replace('.', ',') : '');
+  const [category, setCategory] = useState(editing?.category ?? 'comida');
+  const [note, setNote] = useState(editing?.note ?? '');
   const [error, setError] = useState('');
 
   const save = () => {
@@ -24,12 +26,15 @@ export default function Novo() {
       setError('Informe um valor maior que zero.');
       return;
     }
-    addEntry({ kind, amount, category, note: note.trim(), date: new Date().toISOString() });
+    const data = { kind, amount, category, note: note.trim(), date: editing?.date ?? new Date().toISOString() };
+    if (editing) updateEntry(editing.id, data);
+    else addEntry(data);
     router.back();
   };
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Stack.Screen options={{ title: editing ? 'Editar lançamento' : 'Novo lançamento' }} />
       <View style={styles.row}>
         {(['expense', 'income'] as const).map((k) => (
           <Pressable key={k} onPress={() => setKind(k)} style={[styles.seg, kind === k && styles.segOn]}>
@@ -51,7 +56,7 @@ export default function Novo() {
         placeholderTextColor={colors.muted}
         keyboardType="decimal-pad"
         style={[styles.input, styles.amount]}
-        autoFocus
+        autoFocus={!editing}
       />
 
       <Text style={styles.label}>Categoria</Text>

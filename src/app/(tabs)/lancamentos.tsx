@@ -20,7 +20,7 @@ export default function Lancamentos() {
       renderItem={({ item }) => <EntryRow entry={item} />}
       ListHeaderComponent={<MonthBar month={month} onChange={setMonth} />}
       ListEmptyComponent={<Text style={styles.empty}>Nada por aqui ainda.</Text>}
-      ListFooterComponent={visible.length ? <Text style={styles.hint}>Toque na lixeira para excluir.</Text> : undefined}
+      ListFooterComponent={visible.length ? <Text style={styles.hint}>Toque para editar. Use a lixeira para excluir.</Text> : undefined}
       ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
       contentContainerStyle={styles.content}
     />

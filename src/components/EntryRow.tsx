@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
@@ -29,7 +30,11 @@ export function EntryRow({ entry }: { entry: Entry }) {
   };
 
   return (
-    <Pressable onLongPress={confirmRemove} style={styles.row} accessibilityHint="Segure para excluir">
+    <Pressable
+      onPress={() => router.push({ pathname: '/novo', params: { id: entry.id } })}
+      onLongPress={confirmRemove}
+      style={styles.row}
+      accessibilityHint="Toque para editar, segure para excluir">
       <View style={styles.icon}>
         <Ionicons name={cat.icon as ComponentProps<typeof Ionicons>['name']} size={20} color={colors.primary} />
       </View>

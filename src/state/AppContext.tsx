@@ -8,10 +8,16 @@ const STORAGE_KEY = 'gastos.entries';
 type AppState = {
   entries: Entry[];
   addEntry: (entry: Omit<Entry, 'id'>) => void;
+  updateEntry: (id: string, entry: Omit<Entry, 'id'>) => void;
   removeEntry: (id: string) => void;
 };
 
-const AppContext = createContext<AppState>({ entries: [], addEntry: () => {}, removeEntry: () => {} });
+const AppContext = createContext<AppState>({
+  entries: [],
+  addEntry: () => {},
+  updateEntry: () => {},
+  removeEntry: () => {},
+});
 
 function load(): Entry[] {
   try {
@@ -50,6 +56,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             b.date.localeCompare(a.date),
           ),
         ),
+      updateEntry: (id, entry) =>
+        update((cur) => cur.map((e) => (e.id === id ? { ...entry, id } : e)).sort((a, b) => b.date.localeCompare(a.date))),
       removeEntry: (id) => update((cur) => cur.filter((e) => e.id !== id)),
     }),
     [entries, update],
