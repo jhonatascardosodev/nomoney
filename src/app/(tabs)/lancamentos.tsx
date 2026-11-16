@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, ScrollView, SectionList, Text, TextInput, View } from 'react-native';
 
 import { EntryRow } from '@/components/EntryRow';
+import { Fab } from '@/components/Fab';
 import { MonthBar } from '@/components/MonthBar';
 import { makeStyles, useColors } from '@/components/theme';
-import { monthKey } from '@/lib/money';
+import { dayTitle, formatMoney, monthKey } from '@/lib/money';
 import { useApp } from '@/state/AppContext';
 import { CATEGORIES, categoryOf, type Kind } from '@/state/types';
 
@@ -39,6 +41,23 @@ export default function Lancamentos() {
       return normalize(`${e.note} ${categoryOf(e.category).label}`).includes(q);
     });
   }, [monthEntries, query, kind, category]);
+
+  // Group by local day; entries are already sorted newest first.
+  const sections = useMemo(() => {
+    const groups: { key: string; title: string; net: number; data: typeof visible }[] = [];
+    for (const e of visible) {
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      let g = groups[groups.length - 1];
+      if (!g || g.key !== key) {
+        g = { key, title: dayTitle(e.date), net: 0, data: [] };
+        groups.push(g);
+      }
+      g.data.push(e);
+      g.net += e.kind === 'income' ? e.amount : -e.amount;
+    }
+    return groups;
+  }, [visible]);
 
   const categories = CATEGORIES.filter((c) => kind === 'all' || c.kinds.includes(kind));
   const filtering = query.trim() !== '' || kind !== 'all' || category !== null;
@@ -101,24 +120,50 @@ export default function Lancamentos() {
   );
 
   return (
-    <FlatList
-      data={visible}
-      keyExtractor={(e) => e.id}
-      renderItem={({ item }) => <EntryRow entry={item} />}
-      ListHeaderComponent={header}
-      ListEmptyComponent={
-        <Text style={styles.empty}>{filtering ? 'Nenhum lançamento com esses filtros.' : 'Nada por aqui ainda.'}</Text>
-      }
-      ListFooterComponent={visible.length ? <Text style={styles.hint}>Toque para editar. Use a lixeira para excluir.</Text> : undefined}
-      ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    />
+    <View style={styles.screen}>
+      <SectionList
+        sections={sections}
+        keyExtractor={(e) => e.id}
+        renderItem={({ item }) => <EntryRow entry={item} />}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.dayHeader}>
+            <Text style={styles.dayTitle}>{section.title}</Text>
+            <Text style={[styles.dayNet, section.net > 0 && { color: colors.income }]}>
+              {section.net > 0 ? '+ ' : section.net < 0 ? '− ' : ''}
+              {formatMoney(Math.abs(section.net))}
+            </Text>
+          </View>
+        )}
+        stickySectionHeadersEnabled={false}
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Ionicons name={filtering ? 'search-outline' : 'receipt-outline'} size={36} color={colors.muted} />
+            <Text style={styles.emptyText}>
+              {filtering ? 'Nenhum lançamento com esses filtros.' : 'Nada por aqui ainda. Toque no + para começar.'}
+            </Text>
+          </View>
+        }
+        ListFooterComponent={
+          visible.length ? <Text style={styles.hint}>Toque para editar. Use a lixeira para excluir.</Text> : undefined
+        }
+        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      />
+      <Fab />
+    </View>
   );
 }
 
 const useStyles = makeStyles((colors) => ({
-  content: { padding: 16, maxWidth: 560, width: '100%', alignSelf: 'center' },
+  screen: { flex: 1 },
+  content: { padding: 16, paddingBottom: 100, maxWidth: 560, width: '100%', alignSelf: 'center' },
+  dayHeader: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, marginBottom: 8 },
+  dayTitle: { color: colors.text, fontWeight: '800', fontSize: 15 },
+  dayNet: { color: colors.muted, fontWeight: '700', fontSize: 13, fontVariant: ['tabular-nums'] },
+  empty: { alignItems: 'center', gap: 8, marginTop: 40 },
+  emptyText: { color: colors.muted, textAlign: 'center' },
   header: { gap: 10, marginBottom: 8 },
   search: {
     backgroundColor: colors.card,
@@ -143,6 +188,5 @@ const useStyles = makeStyles((colors) => ({
   chipText: { color: colors.text, fontWeight: '600', fontSize: 14 },
   chipTextOn: { color: colors.background },
   count: { color: colors.muted, fontSize: 12 },
-  empty: { color: colors.muted, textAlign: 'center', marginTop: 24 },
   hint: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: 16 },
 }));

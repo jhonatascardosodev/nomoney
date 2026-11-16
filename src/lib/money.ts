@@ -64,3 +64,22 @@ export function maskMoneyInput(text: string): string {
   const int = padded.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return `${int},${cents}`;
 }
+
+/** Short money for chart axes: 950 -> "R$ 9,50"; 123400 -> "R$ 1,2 mil"; 250000000 -> "R$ 2,5 mi". */
+export function formatCompact(cents: number): string {
+  const v = cents / 100;
+  const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  if (v >= 1_000_000) return `R$ ${fmt(v / 1_000_000)} mi`;
+  if (v >= 1_000) return `R$ ${fmt(v / 1_000)} mil`;
+  return `R$ ${fmt(v)}`;
+}
+
+/** "Hoje", "Ontem" or "12 de nov." for grouping lists by day. */
+export function dayTitle(iso: string, now = new Date()): string {
+  const d = new Date(iso);
+  const start = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((start(now) - start(d)) / 86_400_000);
+  if (diff === 0) return 'Hoje';
+  if (diff === 1) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
+}

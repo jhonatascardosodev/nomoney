@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, Tabs } from 'expo-router';
+import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { Pressable, type ColorValue } from 'react-native';
+import type { ColorValue } from 'react-native';
 
 import { useColors } from '@/components/theme';
 
@@ -16,13 +16,8 @@ export default function TabLayout() {
         headerStyle: { backgroundColor: colors.card },
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
         sceneStyle: { backgroundColor: colors.background },
-        headerRight: () => (
-          <Link href="/novo" asChild>
-            <Pressable accessibilityLabel="Novo lançamento" style={{ marginRight: 16 }} hitSlop={8}>
-              <Ionicons name="add-circle" size={30} color={colors.primary} />
-            </Pressable>
-          </Link>
-        ),
+        headerShadowVisible: false,
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Resumo', tabBarIcon: tabIcon('pie-chart') }} />
       <Tabs.Screen name="lancamentos" options={{ title: 'Lançamentos', tabBarIcon: tabIcon('list') }} />

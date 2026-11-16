@@ -33,6 +33,9 @@ const dark: Colors = {
 
 export const radius = { sm: 8, md: 14, lg: 22, pill: 999 };
 
+/** Soft elevation for cards (works on native new-arch and web). */
+export const cardShadow = '0 1px 3px rgba(15, 31, 29, 0.06), 0 6px 16px rgba(15, 31, 29, 0.05)';
+
 export type ThemePreference = 'system' | 'light' | 'dark';
 type Scheme = 'light' | 'dark';
 

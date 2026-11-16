@@ -1,17 +1,22 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { CategoryStack, MonthlyBars, useCategoryColor, type MonthPoint } from '@/components/Charts';
+import { CategoryDonut, MonthlyBars, useCategoryColor, type MonthPoint } from '@/components/Charts';
+import { Fab } from '@/components/Fab';
 import { MonthBar } from '@/components/MonthBar';
-import { makeStyles } from '@/components/theme';
-import { formatMoney, monthKey, shiftMonth } from '@/lib/money';
+import { cardShadow, makeStyles, useColors } from '@/components/theme';
+import { formatMoney, monthKey, monthLabel, shiftMonth } from '@/lib/money';
 import { useApp } from '@/state/AppContext';
 import { categoryOf } from '@/state/types';
 
 export default function Resumo() {
   const styles = useStyles();
+  const colors = useColors();
   const { entries } = useApp();
   const [month, setMonth] = useState(() => monthKey(new Date()));
+  const colorOf = useCategoryColor();
 
   const { income, expense, byCategory } = useMemo(() => {
     let income = 0;
@@ -46,88 +51,136 @@ export default function Resumo() {
     }
     return [...points.values()];
   }, [entries, month]);
-  const colorOf = useCategoryColor();
 
   const balance = income - expense;
+  const hasHistory = history.some((h) => h.income > 0 || h.expense > 0);
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <MonthBar month={month} onChange={setMonth} />
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <MonthBar month={month} onChange={setMonth} />
 
-      <View style={styles.hero}>
-        <Text style={styles.heroLabel}>Saldo do mês</Text>
-        <Text style={styles.heroValue}>{formatMoney(balance)}</Text>
-      </View>
-
-      <View style={styles.pair}>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Entradas</Text>
-          <Text style={[styles.cardValue, styles.positive]}>{formatMoney(income)}</Text>
-        </View>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Saídas</Text>
-          <Text style={[styles.cardValue, styles.negative]}>{formatMoney(expense)}</Text>
-        </View>
-      </View>
-
-      <Text style={styles.section}>Últimos 6 meses</Text>
-      <MonthlyBars data={history} selected={month} />
-
-      <Text style={styles.section}>Gastos por categoria</Text>
-      <CategoryStack data={byCategory} />
-      {byCategory.length === 0 ? (
-        <Text style={styles.empty}>Nenhum gasto neste mês. Toque no + para adicionar.</Text>
-      ) : (
-        byCategory.map(([id, total]) => {
-          const pct = expense > 0 ? (total / expense) * 100 : 0;
-          return (
-            <View key={id} style={styles.cat}>
-              <View style={styles.catHead}>
-                <View style={styles.catTitle}>
-                  <View style={[styles.dot, { backgroundColor: colorOf(id) }]} />
-                  <Text style={styles.catName}>{categoryOf(id).label}</Text>
-                </View>
-                <Text style={styles.catValue}>
-                  {formatMoney(total)} · {pct.toFixed(pct > 0 && pct < 10 ? 1 : 0).replace('.', ',')}%
-                </Text>
+        <LinearGradient
+          colors={['#0F766E', '#0B4F4A']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}>
+          <Text style={styles.heroLabel}>Saldo de {monthLabel(month).split(' ')[0].toLowerCase()}</Text>
+          <Text style={styles.heroValue} numberOfLines={1} adjustsFontSizeToFit>
+            {formatMoney(balance)}
+          </Text>
+          <View style={styles.heroRow}>
+            <View style={styles.heroPill}>
+              <View style={[styles.heroIcon, { backgroundColor: 'rgba(74, 222, 128, 0.25)' }]}>
+                <Ionicons name="arrow-down" size={14} color="#86EFAC" />
               </View>
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${pct}%`, backgroundColor: colorOf(id) }]} />
+              <View>
+                <Text style={styles.heroPillLabel}>Entradas</Text>
+                <Text style={styles.heroPillValue}>{formatMoney(income)}</Text>
               </View>
             </View>
-          );
-        })
-      )}
-    </ScrollView>
+            <View style={styles.heroPill}>
+              <View style={[styles.heroIcon, { backgroundColor: 'rgba(255, 93, 112, 0.25)' }]}>
+                <Ionicons name="arrow-up" size={14} color="#FDA4AF" />
+              </View>
+              <View>
+                <Text style={styles.heroPillLabel}>Saídas</Text>
+                <Text style={styles.heroPillValue}>{formatMoney(expense)}</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Gastos por categoria</Text>
+          {byCategory.length === 0 ? (
+            <View style={styles.empty}>
+              <Ionicons name="pie-chart-outline" size={36} color={colors.muted} />
+              <Text style={styles.emptyText}>Nenhum gasto neste mês. Toque no + para adicionar.</Text>
+            </View>
+          ) : (
+            <>
+              <CategoryDonut data={byCategory} total={expense} />
+              <View style={styles.list}>
+                {byCategory.map(([id, total]) => {
+                  const pct = (total / expense) * 100;
+                  return (
+                    <View key={id} style={styles.cat}>
+                      <View style={styles.catHead}>
+                        <View style={styles.catTitle}>
+                          <View style={[styles.dot, { backgroundColor: colorOf(id) }]} />
+                          <Text style={styles.catName}>{categoryOf(id).label}</Text>
+                        </View>
+                        <Text style={styles.catValue}>
+                          {formatMoney(total)}
+                          <Text style={styles.catPct}>
+                            {'  '}
+                            {pct.toFixed(pct > 0 && pct < 10 ? 1 : 0).replace('.', ',')}%
+                          </Text>
+                        </Text>
+                      </View>
+                      <View style={styles.track}>
+                        <View style={[styles.fill, { width: `${pct}%`, backgroundColor: colorOf(id) }]} />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          )}
+        </View>
+
+        {hasHistory ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Últimos 6 meses</Text>
+            <MonthlyBars data={history} selected={month} />
+          </View>
+        ) : null}
+      </ScrollView>
+      <Fab />
+    </View>
   );
 }
 
 const useStyles = makeStyles((colors) => ({
-  content: { padding: 16, gap: 12, maxWidth: 560, width: '100%', alignSelf: 'center' },
-  hero: { backgroundColor: colors.primary, borderRadius: 22, padding: 20 },
-  heroLabel: { color: colors.background, opacity: 0.85, fontSize: 14, fontWeight: '600' },
-  heroValue: { color: colors.background, fontSize: 34, fontWeight: '800', marginTop: 4 },
-  pair: { flexDirection: 'row', gap: 12 },
-  card: {
+  screen: { flex: 1 },
+  content: { padding: 16, paddingBottom: 100, gap: 16, maxWidth: 560, width: '100%', alignSelf: 'center' },
+  hero: { borderRadius: 24, padding: 20, gap: 4, boxShadow: '0 10px 24px rgba(15, 118, 110, 0.28)' },
+  heroLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' },
+  heroValue: { color: '#FFFFFF', fontSize: 38, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  heroRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  heroPill: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 16,
+    padding: 12,
+  },
+  heroIcon: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  heroPillLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '600' },
+  heroPillValue: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  card: {
     backgroundColor: colors.card,
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 14,
+    padding: 16,
+    gap: 14,
+    boxShadow: cardShadow,
   },
-  cardLabel: { color: colors.muted, fontSize: 13, fontWeight: '600' },
-  cardValue: { fontSize: 18, fontWeight: '800', marginTop: 4 },
-  positive: { color: colors.income },
-  negative: { color: colors.expense },
-  section: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 8 },
-  empty: { color: colors.muted, fontSize: 14 },
+  cardTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
+  empty: { alignItems: 'center', gap: 8, paddingVertical: 20 },
+  emptyText: { color: colors.muted, fontSize: 14, textAlign: 'center' },
+  list: { gap: 14, marginTop: 4 },
   cat: { gap: 6 },
-  catHead: { flexDirection: 'row', justifyContent: 'space-between' },
+  catHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   catTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   catName: { color: colors.text, fontWeight: '600', fontSize: 15 },
-  catValue: { color: colors.muted, fontSize: 14 },
-  track: { height: 8, borderRadius: 4, backgroundColor: colors.primarySoft, overflow: 'hidden' },
-  fill: { height: 8, borderRadius: 4, backgroundColor: colors.primary },
+  catValue: { color: colors.text, fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  catPct: { color: colors.muted, fontWeight: '600', fontSize: 13 },
+  track: { height: 6, borderRadius: 3, backgroundColor: colors.primarySoft, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 3 },
 }));
