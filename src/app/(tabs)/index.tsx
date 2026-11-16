@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { CategoryStack, MonthlyBars, useCategoryColor, type MonthPoint } from '@/components/Charts';
 import { MonthBar } from '@/components/MonthBar';
 import { makeStyles } from '@/components/theme';
-import { formatMoney, monthKey } from '@/lib/money';
+import { formatMoney, monthKey, shiftMonth } from '@/lib/money';
 import { useApp } from '@/state/AppContext';
 import { categoryOf } from '@/state/types';
 
@@ -28,6 +29,25 @@ export default function Resumo() {
     return { income, expense, byCategory };
   }, [entries, month]);
 
+  // Last 6 months ending at the selected one.
+  const history = useMemo<MonthPoint[]>(() => {
+    const points = new Map<string, MonthPoint>();
+    for (let i = 5; i >= 0; i--) {
+      const key = shiftMonth(month, -i);
+      const [y, m] = key.split('-').map(Number);
+      const label = new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+      points.set(key, { key, label, income: 0, expense: 0 });
+    }
+    for (const e of entries) {
+      const p = points.get(monthKey(new Date(e.date)));
+      if (!p) continue;
+      if (e.kind === 'income') p.income += e.amount;
+      else p.expense += e.amount;
+    }
+    return [...points.values()];
+  }, [entries, month]);
+  const colorOf = useCategoryColor();
+
   const balance = income - expense;
 
   return (
@@ -50,7 +70,11 @@ export default function Resumo() {
         </View>
       </View>
 
+      <Text style={styles.section}>Últimos 6 meses</Text>
+      <MonthlyBars data={history} selected={month} />
+
       <Text style={styles.section}>Gastos por categoria</Text>
+      <CategoryStack data={byCategory} />
       {byCategory.length === 0 ? (
         <Text style={styles.empty}>Nenhum gasto neste mês. Toque no + para adicionar.</Text>
       ) : (
@@ -59,13 +83,16 @@ export default function Resumo() {
           return (
             <View key={id} style={styles.cat}>
               <View style={styles.catHead}>
-                <Text style={styles.catName}>{categoryOf(id).label}</Text>
+                <View style={styles.catTitle}>
+                  <View style={[styles.dot, { backgroundColor: colorOf(id) }]} />
+                  <Text style={styles.catName}>{categoryOf(id).label}</Text>
+                </View>
                 <Text style={styles.catValue}>
                   {formatMoney(total)} · {pct.toFixed(pct > 0 && pct < 10 ? 1 : 0).replace('.', ',')}%
                 </Text>
               </View>
               <View style={styles.track}>
-                <View style={[styles.fill, { width: `${pct}%` }]} />
+                <View style={[styles.fill, { width: `${pct}%`, backgroundColor: colorOf(id) }]} />
               </View>
             </View>
           );
@@ -97,6 +124,8 @@ const useStyles = makeStyles((colors) => ({
   empty: { color: colors.muted, fontSize: 14 },
   cat: { gap: 6 },
   catHead: { flexDirection: 'row', justifyContent: 'space-between' },
+  catTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
   catName: { color: colors.text, fontWeight: '600', fontSize: 15 },
   catValue: { color: colors.muted, fontSize: 14 },
   track: { height: 8, borderRadius: 4, backgroundColor: colors.primarySoft, overflow: 'hidden' },
