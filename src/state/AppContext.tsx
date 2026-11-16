@@ -8,6 +8,8 @@ type AppState = {
   addEntry: (entry: Omit<Entry, 'id'>) => void;
   updateEntry: (id: string, entry: Omit<Entry, 'id'>) => void;
   removeEntry: (id: string) => void;
+  /** Adds entries whose id is not present yet. Returns how many were added. */
+  importEntries: (list: Entry[]) => number;
 };
 
 const AppContext = createContext<AppState>({
@@ -15,6 +17,7 @@ const AppContext = createContext<AppState>({
   addEntry: () => {},
   updateEntry: () => {},
   removeEntry: () => {},
+  importEntries: () => 0,
 });
 
 const byDateDesc = (a: Entry, b: Entry) => b.date.localeCompare(a.date);
@@ -70,9 +73,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
+  const importEntries = useCallback<AppState['importEntries']>(
+    (list) => {
+      const known = new Set(entries.map((e) => e.id));
+      const fresh = list.filter((e, i) => !known.has(e.id) && list.findIndex((x) => x.id === e.id) === i);
+      if (fresh.length === 0) return 0;
+      setEntries((cur) => [...cur, ...fresh].sort(byDateDesc));
+      // Sequential so a failure stops early instead of racing.
+      persist(
+        fresh.reduce<Promise<void>>((chain, e) => chain.then(() => insertEntry(e)), Promise.resolve()),
+      );
+      return fresh.length;
+    },
+    [entries, persist],
+  );
+
   const value = useMemo<AppState>(
-    () => ({ entries, addEntry, updateEntry, removeEntry }),
-    [entries, addEntry, updateEntry, removeEntry],
+    () => ({ entries, addEntry, updateEntry, removeEntry, importEntries }),
+    [entries, addEntry, updateEntry, removeEntry, importEntries],
   );
 
   // Wait for the first load so screens never flash an empty list.
