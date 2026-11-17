@@ -1,7 +1,9 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 
 import { makeStyles, useColors, useTheme, type ThemePreference } from '@/components/theme';
+import { makeCsv } from '@/lib/csv';
 import { makeBackup, parseBackup } from '@/lib/parseEntries';
 import { useApp } from '@/state/AppContext';
 
@@ -34,6 +36,25 @@ export default function Ajustes() {
         await Share.share({ message: json, title: 'Backup do NoMoney' });
       } catch {
         setMessage({ text: 'Não foi possível compartilhar o backup.', error: true });
+      }
+    }
+  };
+
+  const exportCsv = async () => {
+    const csv = makeCsv(entries);
+    if (Platform.OS === 'web') {
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `nomoney-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMessage({ text: `${entries.length} lançamento(s) exportado(s) em CSV.` });
+    } else {
+      try {
+        await Share.share({ message: csv, title: 'Lançamentos do NoMoney (CSV)' });
+      } catch {
+        setMessage({ text: 'Não foi possível compartilhar o CSV.', error: true });
       }
     }
   };
@@ -83,10 +104,23 @@ export default function Ajustes() {
         ))}
       </View>
 
+      <Text style={[styles.section, styles.gap]}>Planejamento</Text>
+      <View style={styles.row}>
+        <Pressable onPress={() => router.push('/orcamentos')} style={styles.chip} accessibilityRole="button">
+          <Text style={styles.chipText}>Orçamento mensal</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push('/recorrentes')} style={styles.chip} accessibilityRole="button">
+          <Text style={styles.chipText}>Recorrentes</Text>
+        </Pressable>
+      </View>
+
       <Text style={[styles.section, styles.gap]}>Backup</Text>
       <View style={styles.row}>
         <Pressable onPress={exportBackup} style={styles.chip} accessibilityRole="button">
           <Text style={styles.chipText}>Exportar</Text>
+        </Pressable>
+        <Pressable onPress={exportCsv} style={styles.chip} accessibilityRole="button">
+          <Text style={styles.chipText}>Exportar CSV</Text>
         </Pressable>
         {Platform.OS === 'web' ? (
           <Pressable onPress={pickFile} style={styles.chip} accessibilityRole="button">

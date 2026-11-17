@@ -14,7 +14,7 @@ import { categoryOf } from '@/state/types';
 export default function Resumo() {
   const styles = useStyles();
   const colors = useColors();
-  const { entries } = useApp();
+  const { entries, budgets } = useApp();
   const [month, setMonth] = useState(() => monthKey(new Date()));
   const colorOf = useCategoryColor();
 
@@ -53,6 +53,17 @@ export default function Resumo() {
   }, [entries, month]);
 
   const balance = income - expense;
+
+  // history ends at the selected month, so the one before it is the previous month.
+  const prevExpense = history[history.length - 2]?.expense ?? 0;
+  const prevName = monthLabel(shiftMonth(month, -1)).split(' ')[0].toLowerCase();
+  const comparison = (() => {
+    if (prevExpense === 0) return null;
+    const diff = ((expense - prevExpense) / prevExpense) * 100;
+    if (Math.abs(diff) < 0.5) return `Gastos iguais aos de ${prevName}`;
+    const pct = Math.abs(diff).toFixed(0);
+    return diff > 0 ? `Você gastou ${pct}% a mais que em ${prevName}` : `Você gastou ${pct}% a menos que em ${prevName}`;
+  })();
   const hasHistory = history.some((h) => h.income > 0 || h.expense > 0);
 
   return (
@@ -89,6 +100,7 @@ export default function Resumo() {
               </View>
             </View>
           </View>
+          {comparison ? <Text style={styles.heroCompare}>{comparison}</Text> : null}
         </LinearGradient>
 
         <View style={styles.card}>
@@ -104,6 +116,9 @@ export default function Resumo() {
               <View style={styles.list}>
                 {byCategory.map(([id, total]) => {
                   const pct = (total / expense) * 100;
+                  const limit = budgets[id];
+                  const used = limit ? total / limit : 0;
+                  const over = limit ? total > limit : false;
                   return (
                     <View key={id} style={styles.cat}>
                       <View style={styles.catHead}>
@@ -120,8 +135,22 @@ export default function Resumo() {
                         </Text>
                       </View>
                       <View style={styles.track}>
-                        <View style={[styles.fill, { width: `${pct}%`, backgroundColor: colorOf(id) }]} />
+                        <View
+                          style={[
+                            styles.fill,
+                            limit
+                              ? { width: `${Math.min(used, 1) * 100}%`, backgroundColor: over ? colors.expense : colorOf(id) }
+                              : { width: `${pct}%`, backgroundColor: colorOf(id) },
+                          ]}
+                        />
                       </View>
+                      {limit ? (
+                        <Text style={[styles.limit, over && { color: colors.error }]}>
+                          {over
+                            ? `Passou ${formatMoney(total - limit)} do limite de ${formatMoney(limit)}`
+                            : `${Math.round(used * 100)}% do limite de ${formatMoney(limit)}`}
+                        </Text>
+                      ) : null}
                     </View>
                   );
                 })}
@@ -159,6 +188,8 @@ const useStyles = makeStyles((colors) => ({
     padding: 12,
   },
   heroIcon: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  heroCompare: { color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', marginTop: 10 },
+  limit: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   heroPillLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: '600' },
   heroPillValue: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
   card: {

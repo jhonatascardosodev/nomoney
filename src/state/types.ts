@@ -35,3 +35,20 @@ export type Entry = {
   /** ISO date-time. */
   date: string;
 };
+
+/** Monthly spending limit per expense category, in cents. */
+export type Budgets = Record<string, number>;
+
+/** Entry created automatically every month on `day`. */
+export type Recurring = {
+  id: string;
+  kind: Kind;
+  /** Amount in cents, always positive. */
+  amount: number;
+  category: string;
+  note: string;
+  /** Day of the month (1-31); short months use their last day. */
+  day: number;
+  /** Last month already generated, "YYYY-MM". */
+  generatedUntil: string;
+};

@@ -17,6 +17,8 @@ export default function RootLayout() {
               name="novo"
               options={{ headerShown: true, title: 'Novo lançamento', presentation: 'modal' }}
             />
+            <Stack.Screen name="orcamentos" options={{ headerShown: true, title: 'Orçamento mensal' }} />
+            <Stack.Screen name="recorrentes" options={{ headerShown: true, title: 'Lançamentos recorrentes' }} />
           </Stack>
         </NavigationTheme>
       </AppProvider>
