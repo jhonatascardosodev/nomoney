@@ -1,4 +1,4 @@
-# Gastos
+# NoMoney
 
 App de controle financeiro pessoal feito com Expo (React Native). Registre gastos e entradas, acompanhe o saldo do mês e veja gráficos por categoria. Funciona em Android, iOS e web.
 
@@ -57,4 +57,4 @@ src/
 
 ## Backup
 
-Em **Ajustes** é possível exportar os lançamentos para um arquivo JSON (`gastos-backup-AAAA-MM-DD.json`) e importá-lo depois. Valores são guardados em centavos, sempre positivos, com o tipo (`expense` ou `income`) indicando se é gasto ou entrada. Itens inválidos no arquivo são ignorados na importação.
+Em **Ajustes** é possível exportar os lançamentos para um arquivo JSON (`nomoney-backup-AAAA-MM-DD.json`) e importá-lo depois. Valores são guardados em centavos, sempre positivos, com o tipo (`expense` ou `income`) indicando se é gasto ou entrada. Itens inválidos no arquivo são ignorados na importação.

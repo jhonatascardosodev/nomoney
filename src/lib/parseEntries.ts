@@ -26,7 +26,7 @@ export function parseEntries(raw: string): Entry[] {
 export const BACKUP_VERSION = 1;
 
 export function makeBackup(entries: Entry[]): string {
-  return JSON.stringify({ app: 'gastos', version: BACKUP_VERSION, exportedAt: new Date().toISOString(), entries }, null, 2);
+  return JSON.stringify({ app: 'nomoney', version: BACKUP_VERSION, exportedAt: new Date().toISOString(), entries }, null, 2);
 }
 
 /** Reads a backup file (or a bare array of entries). Throws when it is not one. */

@@ -25,13 +25,13 @@ export default function Ajustes() {
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
       const a = document.createElement('a');
       a.href = url;
-      a.download = `gastos-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `nomoney-backup-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setMessage({ text: `${entries.length} lançamento(s) exportado(s).` });
     } else {
       try {
-        await Share.share({ message: json, title: 'Backup de gastos' });
+        await Share.share({ message: json, title: 'Backup do NoMoney' });
       } catch {
         setMessage({ text: 'Não foi possível compartilhar o backup.', error: true });
       }
